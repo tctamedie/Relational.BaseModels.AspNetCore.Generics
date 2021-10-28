@@ -7,9 +7,9 @@ namespace Relational.BaseModels.AspNetCore.Generics
     public class Maker<T>: Record<T>
         where T: IEquatable<T>
     {
-        public DateTime DateCreated { get; set; }
+        public virtual DateTime DateCreated { get; set; }
         [StringLength(60)]
-        public string CreatedBy { get; set; }
+        public virtual string CreatedBy { get; set; }
         
     }
 
