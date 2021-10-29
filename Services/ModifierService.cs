@@ -3,6 +3,7 @@ using System;
 
 namespace Relational.BaseModels.AspNetCore.Generics.Services
 {
+    
     public interface IModifierService<TEntity, TMap, T,TDbContext> : IMakerService<TEntity, TMap, T, TDbContext>
         where TEntity : Modifier<T>
         where TMap : ModifierDto<T>

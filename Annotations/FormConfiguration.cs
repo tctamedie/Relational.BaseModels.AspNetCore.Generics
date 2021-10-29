@@ -3,6 +3,7 @@
 namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
     using Services;
+
     [AttributeUsage(AttributeTargets.Class, AllowMultiple = false, Inherited = true)]
     public class FormConfiguration : Attribute
     {

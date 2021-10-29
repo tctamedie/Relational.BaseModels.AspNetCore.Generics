@@ -11,26 +11,47 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
     using AutoMapper;
     using Microsoft.EntityFrameworkCore;
 
-    public interface IRecordService<TEntity, TMap, T, TDbContext>: IAnnotationService<TEntity, TMap, T>
+    /// <summary>
+    /// This service provides for any database entity
+    /// </summary>
+    /// <typeparam name="TEntity">Entity that has been mapped to a database</typeparam>
+    /// <typeparam name="TMap">Data Transfer Object</typeparam>
+    /// <typeparam name="T">data type of the primary key</typeparam>
+    /// <typeparam name="TDbContext">The database context to use for persistence, retrieval and deletion</typeparam>
+    public interface IRecordService<TEntity, TMap, T, TDbContext> : IAnnotationService<TEntity, TMap, T>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>
-        
-        where TDbContext: DbContext
+
+        where TDbContext : DbContext
     {
+        Task<OutputModel> GetAsync(Expression<Func<TEntity, bool>> match);
         Task<OutputModel> AddAsync(TMap row, string createdBy);
         Task<OutputModel> DeleteAsync(T id, string deletedBy);
-        Task<OutputModel> GetAllAsync();
+        /// <summary>
+        /// Fetches records based on search criterion
+        /// </summary>
+        /// <param name="match">Search Criterion</param>
+        /// <returns>Result of the fetching which may include data if successful otherwise an error Message is returned</returns>
+        Task<OutputModel> GetAllAsync(Expression<Func<TEntity, bool>> match = null);
         Task<OutputModel> GetAsync(T id);
         Task<OutputModel> UpdateAsync(TMap row, string updatedBy);
+        /// <summary>
+        /// Validates deletion of a given record on condition that it was created by the the user that wants to delete it
+        /// </summary>
+        /// <param name="id">primary key of the record to be deleted</param>
+        /// <param name="user">the user who wants to delete the record</param>
+        /// <returns></returns>
+        bool ValidateDeleteOnCreator(T id, string user);
+
     }
     public abstract class RecordService<TEntity, TMap, T, TDbContext> : AnnotationService<TEntity, TMap, T>, IRecordService<TEntity, TMap, T, TDbContext>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>
-        where TDbContext: DbContext
+        where TDbContext : DbContext
     {
-        protected readonly  TDbContext _context;
+        protected readonly TDbContext _context;
         //private readonly IAuditTrailService _auditTrailService;
         protected string _tableHeader;
         protected string _modelHeader;
@@ -41,31 +62,53 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             _context = context;
             //_auditTrailService = auditTrailService;
         }
-        
+
         public async Task<OutputModel> GetAsync(T id)
         {
-            var row = await _context.Set<TEntity>().Where(x => x.Id.Equals(id))
-                .FirstOrDefaultAsync();
+            var row = await _context.Set<TEntity>().FirstOrDefaultAsync(x => x.Id.Equals(id))                ;
 
             return new OutputModel
             {
                 Data = row
             };
         }
-
-        public async Task<OutputModel> GetAllAsync()
+        public async Task<OutputModel> GetAsync(Expression<Func<TEntity, bool>> match)
         {
-            var rows = await _context.Set<TEntity>().ToListAsync();
+            var row = await _context.Set<TEntity>().FirstOrDefaultAsync(match);
+            return new OutputModel
+            {
+                Data = row
+            };
+        }
 
+        public async Task<OutputModel> GetAllAsync(Expression<Func<TEntity, bool>> match = null)
+        {
+            var rows = new List<TEntity>();
+            if (match == null)
+                rows = await _context.Set<TEntity>().ToListAsync();
+            else
+                rows = await _context.Set<TEntity>().Where(match).ToListAsync();
             return new OutputModel
             {
                 Data = rows
             };
         }
-        protected virtual bool ValidateDeleteOnCreator(T id, string user)
+        /// <summary>
+        /// Validates deletion of a given record on condition that it was created by the the user that wants to delete it
+        /// </summary>
+        /// <param name="id">primary key of the record to be deleted</param>
+        /// <param name="user">the user who wants to delete the record</param>
+        /// <returns> true if the record can be deleted otherwise false</returns>
+        public virtual bool ValidateDeleteOnCreator(T id, string user)
         {
             return true;
         }
+        /// <summary>
+        /// Validates deletion of a given record on condition that it was modified by the the user that wants to delete it
+        /// </summary>
+        /// <param name="id">primary key of the record to be deleted</param>
+        /// <param name="user">the user who wants to delete the record</param>
+        /// <returns>true if the record can be deleted otherwise false</returns>
         protected virtual bool ValidateDeleteOnModifier(T id, string user)
         {
             return true;
@@ -97,10 +140,22 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             return new OutputModel();
 
         }
+        /// <summary>
+        /// Validates approval of a given record on condition that it was not created by the the user that wants to approval it
+        /// </summary>
+        /// <param name="id">primary key of the record to be approved</param>
+        /// <param name="user">the user who wants to approve the record</param>
+        /// <returns>true if approval is allowed otherwise false</returns>
         protected virtual bool ValidateAuthoriseOnCreator(T id, string user)
         {
             return true;
         }
+        /// <summary>
+        /// Validates approval of a given record on condition that it was not modified by the the user that wants to approval it
+        /// </summary>
+        /// <param name="id">primary key of the record to be approved</param>
+        /// <param name="user">the user who wants to approve the record</param>
+        /// <returns>true if approval is allowed otherwise false</returns>
         protected virtual bool ValidateAuthoriseOnModifier(T id, string user)
         {
             return true;
@@ -161,7 +216,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         }
         protected virtual void AppendCreator(TEntity row, string createdBy)
         {
-            
+
         }
         protected virtual void AppendAuthoriser(TEntity row, string authorisedBy)
         {
@@ -198,7 +253,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             //});
 
             return new OutputModel
-            {               
+            {
                 Message = "Successfully Added Record"
             };
         }
@@ -215,7 +270,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             {
                 return new OutputModel(true)
                 {
-                    
+
                     Message = $"{_modelHeader} does not exists, update failed"
                 };
             }
@@ -236,7 +291,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
 
             return new OutputModel
             {
-                
+
                 Message = "Successfully updated record"
             };
         }
@@ -293,7 +348,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             //});
 
             return new OutputModel
-            {                
+            {
                 Message = "Successfully approved record"
             };
         }
