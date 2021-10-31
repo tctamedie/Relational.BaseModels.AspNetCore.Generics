@@ -24,7 +24,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         {
             
         }
-        protected override bool ValidateDeleteOnCreator(T id, string user)
+        public override bool ValidateDeleteOnCreator(T id, string user)
         {
             return !Any(s => s.Id.Equals(id) && s.CreatedBy.ToUpper() == user.ToUpper());
         }

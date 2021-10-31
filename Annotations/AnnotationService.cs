@@ -5,7 +5,7 @@ using System.Linq;
 
 namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
-    public interface IAnnotationService<TEntity, TMap, T>
+    public interface IAnnotationService<TEntity, TMap, T>: IViewAnnotationService
         where T : IEquatable<T>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
@@ -13,162 +13,21 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
         TableModel GetTableModel(string foreignKey = "");
         FormModel GetFormModel(string foreignKey="");
     }
-        public class AnnotationService<TEntity, TMap, T>: IAnnotationService<TEntity, TMap, T>
+        public class AnnotationService<TEntity, TMap, T>: ViewAnnotationService, IAnnotationService<TEntity, TMap, T>
         where T: IEquatable<T>
         where TEntity: Record<T>
         where TMap: RecordDto<T>
     {
-        public List<TAttribute> GetClassAttributes<TAttribute, TClass>(bool specific = false) where TAttribute : Attribute where TClass : class
-        {
-            string name = typeof(TClass).Name;
-            var data = typeof(TClass).Assembly.GetTypes()
-                .Where(t => t.GetCustomAttributes(typeof(TAttribute), true).Any())
-                .Select(t => new { t.Name, Attribute = t.GetCustomAttributes(typeof(TAttribute), true) })
-                .ToList();
-            if (specific)
-                data = data.Where(s => s.Name == name).ToList();
-            List<TAttribute> records = new List<TAttribute>();
-            if (data.Count > 0)
-            {
-                foreach (var attr in data)
-                {
-                    foreach (var record in attr.Attribute)
-                    {
-                        var row = (TAttribute)record;
-                        if (row != null)
-                            records.Add(row);
-                    }
-
-                }
-            }
-
-            return records;
-        }
+        
         public TableModel GetTableModel(string foreignKey="")
         {
-            var config = GetClassAttributes<EntityConfiguration, TEntity>().FirstOrDefault();
-            var columns = GetColumnModels();
-            var keyField = columns.Where(s => s.IsKey).Select(s => s.Id).FirstOrDefault();
-            return new TableModel
-            {
-                ForeignKey = foreignKey,
-                KeyField = keyField,
-                Area = config.Area,
-                Controller = config.Controller,
-                Header = config.Header,
-                Columns = columns
-            };
-        }
-       
-        public List<ColumnModel> GetColumnModels()
-        {
-            List<ColumnModel> models = new List<ColumnModel>();
-            var properties = typeof(TEntity).GetProperties().Where(t => t.GetCustomAttributes(typeof(ColumnAttribute), true).Any()).Select(s => new { Name = s.Name, DataType = s.PropertyType, Attribute = ((ColumnAttribute)s.GetCustomAttributes(typeof(ColumnAttribute), true).First()) }).ToList();
-            foreach(var record in properties)
-            {
-                string dataType = "string";
-                var atrribute = record.Attribute;
-                if (record.DataType == typeof(decimal) || record.DataType == typeof(decimal?))
-                {
-                    dataType = "number";
-                }
-                else if (record.DataType == typeof(int) || record.DataType == typeof(int?))
-                    dataType = "int";
-                else if (record.DataType == typeof(DateTime) || record.DataType == typeof(DateTime?))
-                    dataType = "date";
-                var model = new ColumnModel(atrribute.Order, atrribute.Width, atrribute.Id, atrribute.IsKey, atrribute.DisplayName);
-                model.DataType = dataType;
-                models.Add(model);
-            }
-            return models;
-        }
-
-        public List<FieldModel> GetFieldModels(FormConfiguration configuration)
-        {
-            List<FieldModel> models = new List<FieldModel>();
-            var properties = typeof(TEntity).GetProperties();
-            foreach (var property in properties)
-            {
-                var attr = (FieldAttribute)property.GetCustomAttributes(typeof(FieldAttribute), true).FirstOrDefault();
-                var lsAttr = (ListAttribute)property.GetCustomAttributes(typeof(ListAttribute), true).FirstOrDefault();
-                string dataType = "string";
-                var record = property.PropertyType;
-                if (record == typeof(decimal) || record == typeof(decimal?))
-                {
-                    dataType = "number";
-                }
-                else if (record == typeof(int) || record == typeof(int?))
-                    dataType = "int";
-                else if (record == typeof(DateTime) || record == typeof(DateTime?))
-                    dataType = "date";
-                var model = new FieldModel(attr.Row, attr.Order, attr.Width, attr.Id, attr.IsKey, attr.DisplayName, attr.Autogenerated, attr.ControlType, attr.TabId);
-                model.DataType = dataType;
-                string controller = lsAttr.Controller;
-                if (string.IsNullOrEmpty(lsAttr.Controller))
-                    controller = configuration.Controller;
-                string area = lsAttr.Area;
-                if (string.IsNullOrEmpty(lsAttr.Area))
-                    area = configuration.Area;
-                model.List = new ListModel(
-                    controller,
-                    lsAttr.Action,
-                    lsAttr.ValueField,
-                    lsAttr.TextField,
-                    lsAttr.ID, 
-                    area,
-                    lsAttr.MultipleSelect,
-                    lsAttr.OnSelectedChange,
-                    lsAttr.OnField,
-                    lsAttr.FilterColumn,
-                    lsAttr.FilterValue,
-                    lsAttr.SortField);
-                models.Add(model);
-            }
-            return models;
+            return GetTableModel<TEntity, T>(foreignKey);
         }
         public FormModel GetFormModel(string foreignKey="")
         {
-            var config = GetClassAttributes<FormConfiguration, TEntity>().FirstOrDefault();
-            var tabs = GetFormTabs(config);
-            return new FormModel
-            {
-                ForegnKey = foreignKey,
-                KeyField = tabs.KeyField,
-                Area = config.Area,
-                Controller = config.Controller,
-                Header = config.Header,
-                Tabs = tabs.Tabs
-            };
+            return GetFormModel<TMap, T>(foreignKey);
+            
         }
-        public virtual (List<TabModel> Tabs, string KeyField) GetFormTabs(FormConfiguration configuration)
-        {
-            var data =  GetClassAttributes<TabAttribute, TMap>(true);
-            List<TabModel> models = new List<TabModel>();
-            foreach(var row in data)
-            {
-                models.Add(new TabModel(row.Order, row.ID, row.Name, row.IsActiveTab, row.Field, row.IsHidden));
-            }
-            if (models.Count == 0)
-            {
-                models.Add(new TabModel(1, "", "NotApplicable", true, ""));
-            }
-            var fieldModels = GetFieldModels(configuration);
-            string keyField = fieldModels.Where(s => s.IsKey).Select(s=>s.Id).FirstOrDefault();
-            models.ForEach(tab => {
-                var fields = fieldModels.Where(s => s.TabId == tab.ID).ToList();
-                var rows = fields.Select(s => s.Row).ToList();
-                foreach(var row in rows)
-                {
-                    var rowFields = fields.Where(s => s.Row == row).ToList();
-                    tab.Rows.Add(new TabRow
-                    {
-                        Order = row,
-                        Fields = rowFields
-                    });
-                }
-
-            });
-            return (models, keyField);
-        }
+        
     }
 }

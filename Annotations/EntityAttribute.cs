@@ -17,6 +17,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             else
                 DisplayName = displayName;
             Width = width;
+            EntityId = id;
             
         }
         public int Order { get; }
@@ -25,7 +26,8 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
         public bool IsKey { get; }
         public string DisplayName { get; }
         public string DataType { get; set; }
-        
+        public string EntityId { get; }
+
 
 
     }
