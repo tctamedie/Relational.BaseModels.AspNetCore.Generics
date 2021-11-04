@@ -1,22 +1,25 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Linq;
 using System.Runtime.CompilerServices;
 
 namespace Relational.BaseModels.AspNetCore.Generics.Services
 {
-    public interface IStandardModifierService<TEntity, TMap, T, TDbContext> : IModifierService<TEntity, TMap, T, TDbContext>
+    public interface IStandardModifierService<TEntity, TMap, T, TDbContext, TFilter> : IModifierService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : StandardModifier<T>
         where TMap : StandardModifierDto<T>
         where T : IEquatable<T>
         where TDbContext: DbContext
+        where TFilter: StandardFilter
     {
 
     }
-    public class StandardModifierService<TEntity, TMap, T, TDbContext> : ModifierService<TEntity, TMap, T, TDbContext>, IStandardModifierService<TEntity, TMap, T, TDbContext>
+    public class StandardModifierService<TEntity, TMap, T, TDbContext, TFilter> : ModifierService<TEntity, TMap, T, TDbContext, TFilter>, IStandardModifierService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : StandardModifier<T>
         where TMap : StandardModifierDto<T>
         where T : IEquatable<T>
         where TDbContext: DbContext
+        where TFilter: StandardFilter
     {
         
         public StandardModifierService(TDbContext context
@@ -26,7 +29,11 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             
             //_auditTrailService = auditTrailService;
         }
-
+        public override IQueryable<TEntity> SearchByFilterModel(TFilter model, IQueryable<TEntity> data = null)
+        {
+            string name = string.IsNullOrEmpty(model.Name) ? "" : model.Name.ToLower();
+            return _context.Set<TEntity>().Where(s => s.Name.ToLower().Contains(name));
+        }
         protected override OutputModel Validate(TMap row, [CallerMemberName] string caller = "")
         {
             var validation = base.Validate(row, caller);

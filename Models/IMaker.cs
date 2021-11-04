@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Relational.BaseModels.AspNetCore.Generics
 {
-
     public interface IMaker<T>: IRecord<T>
         where T: IEquatable<T>
     {

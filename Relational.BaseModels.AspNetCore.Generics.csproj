@@ -3,10 +3,15 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <Authors>Tamandani Chagwirampeni</Authors>
-    <Version>1.0.0.4</Version>
+    <Version>1.0.0.5</Version>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Description>This library contains base models for creating database entities, Annotations for generating User Interface dynamically, generic services for common database operations</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Services\Security\ReportGroupRepository.cs" />
+    <Compile Remove="Services\Security\SecurityRepository.cs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="10.1.1" />

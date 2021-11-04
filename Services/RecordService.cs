@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 namespace Relational.BaseModels.AspNetCore.Generics.Services
 {
     using Annotations;
+    using Models.Security;
     using AutoMapper;
     using Microsoft.EntityFrameworkCore;
 
@@ -18,11 +19,11 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
     /// <typeparam name="TMap">Data Transfer Object</typeparam>
     /// <typeparam name="T">data type of the primary key</typeparam>
     /// <typeparam name="TDbContext">The database context to use for persistence, retrieval and deletion</typeparam>
-    public interface IRecordService<TEntity, TMap, T, TDbContext> : IAnnotationService<TEntity, TMap, T>
+    public interface IRecordService<TEntity, TMap, T, TDbContext, TFilter> : IAnnotationService<TEntity, TMap, T>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>
-
+        where TFilter: RecordFilter
         where TDbContext : DbContext
     {
         Task<OutputModel> GetAsync(Expression<Func<TEntity, bool>> match);
@@ -33,7 +34,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         /// </summary>
         /// <param name="match">Search Criterion</param>
         /// <returns>Result of the fetching which may include data if successful otherwise an error Message is returned</returns>
-        Task<OutputModel> GetAllAsync(Expression<Func<TEntity, bool>> match = null);
+        Task<OutputModel> GetAllAsync(TFilter model);
         Task<OutputModel> GetAsync(T id);
         Task<OutputModel> UpdateAsync(TMap row, string updatedBy);
         /// <summary>
@@ -43,15 +44,18 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         /// <param name="user">the user who wants to delete the record</param>
         /// <returns></returns>
         bool ValidateDeleteOnCreator(T id, string user);
+        public SecurityDetail SecurityDetail { get; set; }
 
     }
-    public abstract class RecordService<TEntity, TMap, T, TDbContext> : AnnotationService<TEntity, TMap, T>, IRecordService<TEntity, TMap, T, TDbContext>
+    public abstract class RecordService<TEntity, TMap, T, TDbContext, TFilter> : AnnotationService<TEntity, TMap, T>, IRecordService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>
         where TDbContext : DbContext
+        where TFilter: RecordFilter
     {
         protected readonly TDbContext _context;
+        public SecurityDetail SecurityDetail { get; set; }
         //private readonly IAuditTrailService _auditTrailService;
         protected string _tableHeader;
         protected string _modelHeader;
@@ -60,6 +64,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             )
         {
             _context = context;
+            SecurityDetail = new SecurityDetail();
             //_auditTrailService = auditTrailService;
         }
 
@@ -80,18 +85,75 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
                 Data = row
             };
         }
-
-        public async Task<OutputModel> GetAllAsync(Expression<Func<TEntity, bool>> match = null)
+        /// <summary>
+        /// Searches Database based on defined search model for the database
+        /// </summary>
+        /// <param name="model"> Defined model for the search </param>
+        /// <param name="data">already fetched data for further filtering </param>
+        /// <returns>Filtered data</returns>
+        public virtual IQueryable<TEntity> SearchByFilterModel(TFilter model, IQueryable<TEntity> data=null)
         {
-            var rows = new List<TEntity>();
-            if (match == null)
-                rows = await _context.Set<TEntity>().ToListAsync();
-            else
-                rows = await _context.Set<TEntity>().Where(match).ToListAsync();
+            return data;
+        }
+        public virtual Task<List<TEntity>> ReadAsync(TFilter model)
+        {
+            var records = SearchByFilterModel(model);
+            return records.ToListAsync();
+        }
+        public TMap CreateDto(TEntity source)
+        {
+            return CreateTarget<TMap, TEntity>(source);
+        }
+        public string GetSearchString(TFilter model)
+        {
+            return model == null || string.IsNullOrEmpty(model.Search) ? "" : model.Search.ToLower();
+        }
+        protected virtual void CreateAuditLog(TMap row, TEntity entity = null, [CallerMemberName] string action = "", string username="")
+        {
+            if (!SecurityDetail.TrailEnabled)
+                return;
+            string tablename = _context.Model.FindEntityType(typeof(TEntity)).ShortName();
+            var primaryKey = _context.Model.FindEntityType(typeof(TEntity)).FindPrimaryKey().Properties.Select(s => s.Name).Single();
+            var keyValue = row.GetType().GetProperty(primaryKey).GetValue(row, null);
+            var keyValueString = keyValue == null ? "" : keyValue.ToString();
+            var afterLog = row.GetObjectValues();
+
+            var valueLog = afterLog;
+            if (entity != null)
+            {
+                var keys = row.GetObjectProperties();
+                var beforeLog = CreateDto(entity).GetObjectValues();
+                valueLog = afterLog.GetChangedValues(beforeLog, keys);
+            }
+            List<string> values = new List<string>();
+            foreach (var log in valueLog)
+            {
+                values.Add($"{log.Key}: {log.Value}");
+            }
+            string val = string.Join("::", values);
+            _context.Add(new AuditLog
+            {
+                Action = action,
+                AuditDate = DateTime.Now,
+                RecordKey = keyValueString,
+                Table = tablename,
+                Username = username,
+                Value = val
+            });
+            _context.SaveChanges();
+
+        }
+        public virtual TEntity Find(params object[] id)
+        {
+            return _context.Set<TEntity>().Find(id);
+        }
+        public async Task<OutputModel> GetAllAsync(TFilter model)
+        {
             return new OutputModel
             {
-                Data = rows
+                Data = await SearchByFilterModel(model).ToListAsync()
             };
+        
         }
         /// <summary>
         /// Validates deletion of a given record on condition that it was created by the the user that wants to delete it
@@ -230,7 +292,17 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         {
 
         }
-        public async Task<OutputModel> AddAsync(TMap row, string createBy)
+        public int Count(Expression<Func<TEntity, bool>> match=null)
+        {
+            return Count<TEntity>(match);
+        }
+        public int Count<Entity>(Expression<Func<Entity, bool>> match=null ) where Entity: class
+        {
+            if (match == null)
+                return _context.Set<Entity>().ToList().Count;
+            return _context.Set<Entity>().Where(match).ToList().Count;
+        }
+        public virtual async Task<OutputModel> AddAsync(TMap row, string createBy)
         {
             //********* start validations *********************
             var validation = Validate(row);

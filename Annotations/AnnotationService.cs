@@ -1,7 +1,5 @@
 ﻿
 using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
@@ -25,8 +23,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
         }
         public FormModel GetFormModel(string foreignKey="")
         {
-            return GetFormModel<TMap, T>(foreignKey);
-            
+            return GetFormModel<TMap, T>(foreignKey);            
         }
         
     }

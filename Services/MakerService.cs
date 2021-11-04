@@ -3,19 +3,21 @@ using System;
 
 namespace Relational.BaseModels.AspNetCore.Generics.Services
 {
-    public interface IMakerService<TEntity, TMap, T, TDb> : IRecordService<TEntity, TMap, T, TDb>
+    public interface IMakerService<TEntity, TMap, T, TDb, TFilter> : IRecordService<TEntity, TMap, T, TDb, TFilter>
         where TEntity : Maker<T>
         where TMap : MakerDto<T>
         where T : IEquatable<T>
         where TDb: DbContext
+        where TFilter: RecordFilter
     {
         
     }
-    public abstract class  MakerService<TEntity, TMap, T, TDb> : RecordService<TEntity, TMap, T, TDb>, IRecordService<TEntity, TMap, T, TDb>
+    public abstract class  MakerService<TEntity, TMap, T, TDb, TFilter> : RecordService<TEntity, TMap, T, TDb, TFilter>, IMakerService<TEntity, TMap, T, TDb, TFilter>
         where TEntity : Maker<T>
         where TMap : MakerDto<T>
         where T : IEquatable<T>
         where TDb: DbContext
+        where TFilter: RecordFilter
     {
         
         public MakerService(TDb context

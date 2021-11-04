@@ -1,8 +1,4 @@
-﻿using Relational.BaseModels.AspNetCore.Generics.Annotations;
-using System;
-using System.Runtime.CompilerServices;
-
-public class ListModel
+﻿public class ListModel
 {
     public ListModel(string Controller, string Action, string ValueField, string TextField, string ID, string Area, bool MultipleSelect, string OnSelectChange, string OnField, string FilterColumn, string FilterValue, string SortField)
     {

@@ -4,19 +4,21 @@ using System;
 namespace Relational.BaseModels.AspNetCore.Generics.Services
 {
     
-    public interface IModifierService<TEntity, TMap, T,TDbContext> : IMakerService<TEntity, TMap, T, TDbContext>
+    public interface IModifierService<TEntity, TMap, T,TDbContext, TFilter> : IMakerService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : Modifier<T>
         where TMap : ModifierDto<T>
         where T : IEquatable<T>
         where TDbContext: DbContext
+        where TFilter: RecordFilter
     {
         
     }
-    public abstract class  ModifierService<TEntity, TMap, T,TDbContext> : MakerService<TEntity, TMap, T, TDbContext>, IModifierService<TEntity, TMap, T, TDbContext>
+    public abstract class  ModifierService<TEntity, TMap, T,TDbContext, TFilter> : MakerService<TEntity, TMap, T, TDbContext, TFilter>, IModifierService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : Modifier<T>
         where TMap : ModifierDto<T>
         where T : IEquatable<T>
         where TDbContext: DbContext
+        where TFilter: RecordFilter
     {
         
         public ModifierService(TDbContext context
