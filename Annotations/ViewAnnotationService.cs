@@ -51,10 +51,10 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             List<BreadCrumb> breadcrumbs = new();
             foreach(var row in data)
             {
-                breadcrumbs.Add(new BreadCrumb(row.Controller, row.Area, row.ForeignKey, row.Action, row.Header));
+                breadcrumbs.Add(new BreadCrumb( row.Order,row.Controller, row.Area, row.ForeignKey, row.Action, row.Header));
             }
 
-            return breadcrumbs;
+            return breadcrumbs.OrderBy(s=>s.Order).ToList();
         }
         public TableModel GetTableModel<TEntity,TFilter, T>(string foreignKey = "")
         where T : IEquatable<T>

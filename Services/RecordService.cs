@@ -19,7 +19,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
     /// <typeparam name="TMap">Data Transfer Object</typeparam>
     /// <typeparam name="T">data type of the primary key</typeparam>
     /// <typeparam name="TDbContext">The database context to use for persistence, retrieval and deletion</typeparam>
-    public interface IRecordService<TEntity, TMap, T, TDbContext, TFilter> : IAnnotationService<TEntity, TMap, T>
+    public interface IRecordService<TEntity, TMap, T, TDbContext, TFilter> : IAnnotationService<TEntity, TMap, T, TFilter>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>
@@ -47,7 +47,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         public SecurityDetail SecurityDetail { get; set; }
 
     }
-    public abstract class RecordService<TEntity, TMap, T, TDbContext, TFilter> : AnnotationService<TEntity, TMap, T>, IRecordService<TEntity, TMap, T, TDbContext, TFilter>
+    public abstract class RecordService<TEntity, TMap, T, TDbContext, TFilter> : AnnotationService<TEntity, TMap, T, TFilter>, IRecordService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
         where T : IEquatable<T>

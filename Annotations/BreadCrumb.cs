@@ -1,13 +1,15 @@
 ﻿public class BreadCrumb
 {
-    public BreadCrumb(string controller, string area, string foreingKey, string action, string header)
+    public BreadCrumb(int order, string controller, string area, string foreingKey, string action, string header)
     {
+        Order = order;
         Controller = controller;
         Area = area;
         ForeignKey = foreingKey;
         Action = action;
         Header = header;
     }
+    public int Order { get; }
     public string Controller { get; }
     public string Action { get;  }
     public string Area { get; }
