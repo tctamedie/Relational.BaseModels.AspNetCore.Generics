@@ -5,7 +5,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Models
 {
     public partial class SecurityContext: RecordContext
     {
-        public SecurityContext(DbContextOptions<RecordContext> options) : base(options)
+        public SecurityContext(DbContextOptions options) : base(options)
         {
         }
         public DbSet<ParentMenu> ParentMenus { get; set; }
@@ -15,5 +15,6 @@ namespace Relational.BaseModels.AspNetCore.Generics.Models
         public DbSet<UserProfile> UserProfiles { get; set; }
         public DbSet<UserProfileMenu> UserProfileMenus { get; set; }
         public DbSet<UserProfileReport> UserProfileReports { get; set; }
+        
     }
 }

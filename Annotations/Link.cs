@@ -1,6 +1,4 @@
-﻿using Relational.BaseModels.AspNetCore.Generics.Annotations;
-using System;
-using System.Runtime.CompilerServices;
+﻿using System.Runtime.CompilerServices;
 public class Link 
 {
     /// <summary>
