@@ -1,0 +1,19 @@
+﻿public class BreadCrumb
+{
+    public BreadCrumb(string controller, string area, string foreingKey, string action, string header)
+    {
+        Controller = controller;
+        Area = area;
+        ForeignKey = foreingKey;
+        Action = action;
+        Header = header;
+    }
+    public string Controller { get; }
+    public string Action { get;  }
+    public string Area { get; }
+    public string Header { get; set; }
+    public string PrependHeader { get; set; }
+    public string RecordID { get; set; }
+    public string ForeignKey { get;  }
+
+}

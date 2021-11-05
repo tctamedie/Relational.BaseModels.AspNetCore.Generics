@@ -7,9 +7,10 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
     public interface IViewAnnotationService
     {
-        TableModel GetTableModel<TEntity, T>(string foreignKey = "")
+        TableModel GetTableModel<TEntity, TFilter, T>(string foreignKey = "")
             where T : IEquatable<T>
-        where TEntity : Record<T>;
+        where TEntity : Record<T>
+        where TFilter : RecordFilter;
         FormModel GetFormModel<TMap, T>(string foreignKey = "")
             where T : IEquatable<T>
         where TMap : RecordDto<T>;
@@ -42,12 +43,28 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 
             return records;
         }
-        public TableModel GetTableModel<TEntity, T>(string foreignKey = "")
+        List<BreadCrumb> GetBreadCrumbs<TEntity, T>()
+            where T: IEquatable<T>
+            where TEntity: Record<T>
+        {
+            var data = GetClassAttributes<BreadCrumbAttribute, TEntity>();
+            List<BreadCrumb> breadcrumbs = new();
+            foreach(var row in data)
+            {
+                breadcrumbs.Add(new BreadCrumb(row.Controller, row.Area, row.ForeignKey, row.Action, row.Header));
+            }
+
+            return breadcrumbs;
+        }
+        public TableModel GetTableModel<TEntity,TFilter, T>(string foreignKey = "")
         where T : IEquatable<T>
         where TEntity : Record<T>
+            where TFilter: RecordFilter
 
         {
             var config = GetClassAttributes<EntityConfiguration, TEntity>().FirstOrDefault();
+            
+            var filters = GetFilterModels<TFilter>(config);
             var columns = GetColumnModels<TEntity, T>();
             var keyField = columns.Where(s => s.IsKey).Select(s => s.Id).FirstOrDefault();
             return new TableModel
@@ -57,8 +74,26 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
                 Area = config.Area,
                 Controller = config.Controller,
                 Header = config.Header,
-                Columns = columns
+                Columns = columns,
+                Filters = filters,
+                BreadCrumbs = GetBreadCrumbs<TEntity, T>(),
+                Links = GetLinkModels<TEntity, T>()
             };
+        }
+        public List<Link> GetLinkModels<TEntity, T>()
+            where TEntity : Record<T>
+            where T : IEquatable<T>
+        {
+            List<Link> models = new List<Link>();
+            var properties = typeof(TEntity).GetProperties().Where(t => t.GetCustomAttributes(typeof(LinkAttribute), true).Any()).Select(s => new { Name = s.Name, DataType = s.PropertyType, Attribute = ((LinkAttribute)s.GetCustomAttributes(typeof(LinkAttribute), true).First()) }).ToList();
+            foreach (var record in properties)
+            {
+                var atrribute = record.Attribute;
+                var model = new Link(atrribute.Controller, atrribute.LinkButtonTitle, atrribute.LinkButtonTitle, atrribute.LinkButtonIcon, atrribute.LinkButtonClass, atrribute.Action, atrribute.ID,atrribute.Area)
+                ;
+                models.Add(model);
+            }
+            return models;
         }
 
         public List<ColumnModel> GetColumnModels<TEntity, T>()
@@ -87,7 +122,53 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             }
             return models;
         }
-
+        public List<TableFilterModel> GetFilterModels<TFilter>(EntityConfiguration configuration)            
+        where TFilter : RecordFilter
+        {
+            List<TableFilterModel> models = new List<TableFilterModel>();
+            var properties = typeof(TFilter).GetProperties();
+            foreach (var property in properties)
+            {
+                var attr = (TableFilterAttribute)property.GetCustomAttributes(typeof(TableFilterAttribute), true).FirstOrDefault();
+                var lsAttr = (ListAttribute)property.GetCustomAttributes(typeof(ListAttribute), true).FirstOrDefault();
+                string dataType = "string";
+                var record = property.PropertyType;
+                if (record == typeof(decimal) || record == typeof(decimal?))
+                {
+                    dataType = "number";
+                }
+                else if (record == typeof(int) || record == typeof(int?))
+                    dataType = "int";
+                else if (record == typeof(DateTime) || record == typeof(DateTime?))
+                    dataType = "date";
+                var model = new TableFilterModel(attr.Row, attr.Order, attr.Width, attr.Id, attr.DisplayName, attr.DefaultValue, attr.ControlType, attr.OnChangeAction, attr.EntityId);
+                model.DataType = dataType;
+                string controller = lsAttr.Controller;
+                if (string.IsNullOrEmpty(lsAttr.Controller))
+                    controller = configuration.Controller;
+                string area = lsAttr.Area;
+                if (string.IsNullOrEmpty(lsAttr.Area))
+                    area = configuration.Area;
+                if (lsAttr != null)
+                {
+                    model.List = new ListModel(
+                        controller,
+                        lsAttr.Action,
+                        lsAttr.ValueField,
+                        lsAttr.TextField,
+                        lsAttr.ID,
+                        area,
+                        lsAttr.MultipleSelect,
+                        lsAttr.OnSelectedChange,
+                        lsAttr.OnField,
+                        lsAttr.FilterColumn,
+                        lsAttr.FilterValue,
+                        lsAttr.SortField);
+                }
+                models.Add(model);
+            }
+            return models;
+        }
         public List<FieldModel> GetFieldModels<TMap, T>(FormConfiguration configuration)
             where T : IEquatable<T>
         where TMap : RecordDto<T>

@@ -13,5 +13,6 @@
         public string DefaultValue { get; }
         public string OnChangeAction { get; }
         public int Row { get; }
+        public ListModel List { get; set; }
     }
 }
