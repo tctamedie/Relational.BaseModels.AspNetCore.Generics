@@ -5,12 +5,12 @@
         public TableFilterModel(int row,int order, int width, string id, string displayName, string defaultValue, ControlType controlType, string onChangeAction, string entityId) : base(order, width, id, false, displayName, entityId)
         {
             Row = row;
-            ControlType = controlType;
+            ControlType = controlType.ToString().ToLower();
             OnChangeAction = onChangeAction;
             DefaultValue = defaultValue;
         }
-        public ControlType ControlType { get; }
-        public string DefaultValue { get; }
+        public string ControlType { get; }
+        public string DefaultValue { get; set; }
         public string OnChangeAction { get; }
         public int Row { get; }
         public ListModel List { get; set; }

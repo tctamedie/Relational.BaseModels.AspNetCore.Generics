@@ -8,7 +8,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
         {
             Columns = new List<ColumnModel>();
             Filters = new List<TableFilterModel>();
-            Links = new List<Link>();
+            NavigationLinks = new List<Link>();
             BreadCrumbs = new List<BreadCrumb>();
         }
         public string KeyField { get; set; }
@@ -16,9 +16,11 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
         public string Controller { get; set; }
         public string Area { get; set; }
         public string Header { get; set; }
+        public bool IsCreator { get; set; }
         public List<ColumnModel> Columns { get; set; }
         public List<TableFilterModel> Filters { get; set; }
-        public List<Link> Links { get; set; }
+        public List<Link> NavigationLinks { get; set; }
         public List<BreadCrumb> BreadCrumbs { get; set; }
+        public List<ButtonModel> Buttons { get; set; }
     }
 }

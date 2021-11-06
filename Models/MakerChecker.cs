@@ -1,8 +1,10 @@
-﻿using System;
+﻿using Relational.BaseModels.AspNetCore.Generics.Annotations;
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Relational.BaseModels.AspNetCore.Generics
 {
+    [Button(ButtonType.Approve)]
     public class MakerChecker<T>: Maker<T>
         where T: IEquatable<T>
     {

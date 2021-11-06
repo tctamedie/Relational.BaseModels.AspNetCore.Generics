@@ -13,6 +13,7 @@
             this.IsActiveTab = IsActiveTab;
             this.Field = Field.FirstLetterToLower();
             this.IsHidden = IsHidden;
+            Rows = new List<TabRow>();
         }
         public int Order { get; }
         public string ID { get; }

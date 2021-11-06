@@ -10,4 +10,12 @@
         Password,
         File
     }
+    public enum ButtonType
+    {
+        Create = 0,
+        Edit = 1,
+        Delete = 2,
+        Approve = 3,
+        View = 4
+    }
 }

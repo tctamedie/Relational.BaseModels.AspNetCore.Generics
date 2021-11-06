@@ -3,6 +3,9 @@
 namespace Relational.BaseModels.AspNetCore.Generics
 {
     using Annotations;
+    [Button(ButtonType.Edit)]
+    [Button(ButtonType.Delete)]
+    [Button(ButtonType.View)]
     public class Record<T>
         where T: IEquatable<T>
     {

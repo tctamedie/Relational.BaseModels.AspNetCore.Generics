@@ -5,6 +5,14 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
     public class EntityAttribute : Attribute
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="id">identifier of the entity</param>
+        /// <param name="displayName">label for the entity</param>
+        /// <param name="order"> relative horizontal position</param>
+        /// <param name="isKey"></param>
+        /// <param name="width">bootstrap grid system's number of columns</param>
         public EntityAttribute([CallerMemberName] string id = "", string displayName = "", int order = 1, bool isKey = false, int width=6)
         {
             Id = id.FirstLetterToLower();

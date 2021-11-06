@@ -13,7 +13,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
     using Microsoft.EntityFrameworkCore;
 
     /// <summary>
-    /// This service provides for any database entity
+    /// This service provides Crud operation for any database entity
     /// </summary>
     /// <typeparam name="TEntity">Entity that has been mapped to a database</typeparam>
     /// <typeparam name="TMap">Data Transfer Object</typeparam>
@@ -26,8 +26,25 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         where TFilter: RecordFilter
         where TDbContext : DbContext
     {
+        /// <summary>
+        /// Gets a single record given a primary key
+        /// </summary>
+        /// <param name="match"> the linq query expression</param>
+        /// <returns>the matching record in the database</returns>
         Task<OutputModel> GetAsync(Expression<Func<TEntity, bool>> match);
+        /// <summary>
+        /// persists some information to the database
+        /// </summary>
+        /// <param name="row">the information to be persisted</param>
+        /// <param name="createdBy">the user who will effect the persistence</param>
+        /// <returns>the persisted record</returns>
         Task<OutputModel> AddAsync(TMap row, string createdBy);
+        /// <summary>
+        /// Deletes a record that matches a given key
+        /// </summary>
+        /// <param name="id">the key by which to delete</param>
+        /// <param name="deletedBy">the user who will effect the deletion</param>
+        /// <returns>the deleted record</returns>
         Task<OutputModel> DeleteAsync(T id, string deletedBy);
         /// <summary>
         /// Fetches records based on search criterion
@@ -35,7 +52,18 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         /// <param name="match">Search Criterion</param>
         /// <returns>Result of the fetching which may include data if successful otherwise an error Message is returned</returns>
         Task<OutputModel> GetAllAsync(TFilter model);
+        /// <summary>
+        /// Gets a single record given a primary key
+        /// </summary>
+        /// <param name="id">the value of the primary key</param>
+        /// <returns>the matching record in the database</returns>
         Task<OutputModel> GetAsync(T id);
+        /// <summary>
+        /// updates a given database record with given information
+        /// </summary>
+        /// <param name="row"> the information to update the database with</param>
+        /// <param name="updatedBy">the user who will effect the update</param>
+        /// <returns>the updated record</returns>
         Task<OutputModel> UpdateAsync(TMap row, string updatedBy);
         /// <summary>
         /// Validates deletion of a given record on condition that it was created by the the user that wants to delete it
@@ -44,9 +72,26 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         /// <param name="user">the user who wants to delete the record</param>
         /// <returns></returns>
         bool ValidateDeleteOnCreator(T id, string user);
+        /// <summary>
+        /// Fetches records based on search modek
+        /// </summary>
+        /// <param name="model">model search Criterion</param>
+        /// <returns>Results of the fetching which may include data if successful otherwise an error Message is returned</returns>
+        Task<List<TEntity>> ReadAsync(TFilter model);
+        TEntity Find(params object[] id);
+        Task<OutputModel> ApproveAsync(T id, string approvedBy);
+        Task<OutputModel> RejectAsync(T id, string approvedBy);
         public SecurityDetail SecurityDetail { get; set; }
 
     }
+    /// <summary>
+    /// Supports Crud operations on the database for a given entity
+    /// </summary>
+    /// <typeparam name="TEntity">Persistable Database Entity</typeparam>
+    /// <typeparam name="TMap">the data transfer object for the database entity</typeparam>
+    /// <typeparam name="T">the primary key datatatype for the entity</typeparam>
+    /// <typeparam name="TDbContext">the database context to use when doing crud operations</typeparam>
+    /// <typeparam name="TFilter">the model to use when creating table filters</typeparam>
     public abstract class RecordService<TEntity, TMap, T, TDbContext, TFilter> : AnnotationService<TEntity, TMap, T, TFilter>, IRecordService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : Record<T>
         where TMap : RecordDto<T>
@@ -276,10 +321,20 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
             var mapper = config.CreateMapper();
             return mapper.Map<List<TTarget>>(source);
         }
+        /// <summary>
+        /// updates a given record with information about the maker of the record
+        /// </summary>
+        /// <param name="row">the record to append the details to</param>
+        /// <param name="createdBy">the user who will be marked as createby</param>
         protected virtual void AppendCreator(TEntity row, string createdBy)
         {
 
         }
+        /// <summary>
+        /// updates a given record with information about who approves the record
+        /// </summary>
+        /// <param name="row">the record to append the details to</param>
+        /// <param name="authorisedBy">the user who will be marked as approver of the record</param>
         protected virtual void AppendAuthoriser(TEntity row, string authorisedBy)
         {
 
@@ -288,6 +343,11 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         {
             return _context.Set<TEntity>().Any(match);
         }
+        /// <summary>
+        /// updates a given record with information about who modified the record
+        /// </summary>
+        /// <param name="row">the record to append the details to</param>
+        /// <param name="authorisedBy">the user who will be marked as modifier of the record</param>
         protected virtual void AppendModifier(TEntity row, string updatedBy)
         {
 
@@ -398,6 +458,34 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
         }
 
         public async Task<OutputModel> ApproveAsync(T id, string approvedBy)
+        {
+            /****** start validations ****/
+            var validation = Validate(id, approvedBy);
+            if (validation.Error)
+                return validation;
+            /****** end validations ****/
+            var row = await _context.Set<TEntity>().FirstOrDefaultAsync(x => x.Id.Equals(id));
+            AppendAuthoriser(row, approvedBy);
+            _context.Set<TEntity>().Remove(row);
+            await _context.SaveChangesAsync();
+
+            //await _auditTrailService.SendAsync(new AuditTrailDTO
+            //{
+            //    ActionType = "DELETE",
+            //    AfterImage = string.Empty,
+            //    AuditDate = DateTime.UtcNow.AddHours(2),
+            //    BeforeImage = DataImageBuilder.BuildDataImageRow(row).ToString(),
+            //    DataTable = "IndicatorGroups",
+            //    UserId = deletedBy
+            //});
+
+            return new OutputModel
+            {
+                Message = "Successfully approved record"
+            };
+        }
+
+        public async Task<OutputModel> RejectAsync(T id, string approvedBy)
         {
             /****** start validations ****/
             var validation = Validate(id, approvedBy);

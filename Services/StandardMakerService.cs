@@ -14,6 +14,14 @@ namespace Relational.BaseModels.AspNetCore.Generics.Services
     {
 
     }
+    /// <summary>
+    /// Supports Crud operations on the database for a given standard entity which tracks only creators
+    /// </summary>
+    /// <typeparam name="TEntity">Persistable Database Entity</typeparam>
+    /// <typeparam name="TMap">the data transfer object for the database entity</typeparam>
+    /// <typeparam name="T">the primary key datatatype for the entity</typeparam>
+    /// <typeparam name="TDbContext">the database context to use when doing crud operations</typeparam>
+    /// <typeparam name="TFilter">the model to use when creating table filters</typeparam>
     public class StandardMakerService<TEntity, TMap, T, TDbContext, TFilter> : MakerService<TEntity, TMap, T, TDbContext, TFilter>, IStandardMakerService<TEntity, TMap, T, TDbContext, TFilter>
         where TEntity : StandardMaker<T>
         where TMap : StandardMakerDto<T>

@@ -7,10 +7,25 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
 {
     public interface IViewAnnotationService
     {
+        /// <summary>
+        /// Retrievies and transforms Entity Configuration attribute on database entity to come up with a table model
+        /// </summary>
+        /// <typeparam name="TEntity">The database entity from which the entity configurations are retrieved</typeparam>
+        /// <typeparam name="TFilter">The filter which will provide filter criterion</typeparam>
+        /// <typeparam name="T">the datatype of the key of the entity</typeparam>
+        /// <param name="foreignKey">the optional foreign key column in database entity</param>
+        /// <returns>the table model from which to build the presentation html table and filters</returns>
         TableModel GetTableModel<TEntity, TFilter, T>(string foreignKey = "")
             where T : IEquatable<T>
         where TEntity : Record<T>
         where TFilter : RecordFilter;
+        /// <summary>
+        /// Retrievies and transforms Form Configuration attribute on database entity dto to come up with a user interface
+        /// </summary>
+        /// <typeparam name="TMap">The database entity dto</typeparam>
+        /// <typeparam name="T"> the database entity primary key data type</typeparam>
+        /// <param name="foreignKey">the optional foreign key column in database entity</param>
+        /// <returns>the form model from which to build the user interface</returns>
         FormModel GetFormModel<TMap, T>(string foreignKey = "")
             where T : IEquatable<T>
         where TMap : RecordDto<T>;
@@ -65,7 +80,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             var config = GetClassAttributes<EntityConfiguration, TEntity>().FirstOrDefault();
             
             var filters = GetFilterModels<TFilter>(config);
-            var columns = GetColumnModels<TEntity, T>();
+            var columns = GetColumnModels<TEntity, T>().OrderBy(s=>s.Order).ToList();
             var keyField = columns.Where(s => s.IsKey).Select(s => s.Id).FirstOrDefault();
             return new TableModel
             {
@@ -77,7 +92,8 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
                 Columns = columns,
                 Filters = filters,
                 BreadCrumbs = GetBreadCrumbs<TEntity, T>(),
-                Links = GetLinkModels<TEntity, T>()
+                NavigationLinks = GetLinkModels<TEntity, T>(),
+                Buttons = GetButtonModels<TEntity, T>()
             };
         }
         public List<Link> GetLinkModels<TEntity, T>()
@@ -94,6 +110,19 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
                 models.Add(model);
             }
             return models;
+        }
+        public List<ButtonModel> GetButtonModels<TEntity, T>()
+            where TEntity : Record<T>
+            where T : IEquatable<T>
+        {
+            List<ButtonModel> models = new List<ButtonModel>();
+            var data = GetClassAttributes<ButtonAttribute, TEntity>();
+            foreach (var atrribute in data)
+            {
+                var model = new ButtonModel(atrribute.Icon, atrribute.Action, atrribute.Title, atrribute.Text, atrribute.Class, atrribute.ButtonType);
+                models.Add(model);
+            }
+            return models.OrderBy(s=>s.ButtonType).ToList();
         }
 
         public List<ColumnModel> GetColumnModels<TEntity, T>()
@@ -143,14 +172,15 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
                     dataType = "date";
                 var model = new TableFilterModel(attr.Row, attr.Order, attr.Width, attr.Id, attr.DisplayName, attr.DefaultValue, attr.ControlType, attr.OnChangeAction, attr.EntityId);
                 model.DataType = dataType;
-                string controller = lsAttr.Controller;
-                if (string.IsNullOrEmpty(lsAttr.Controller))
-                    controller = configuration.Controller;
-                string area = lsAttr.Area;
-                if (string.IsNullOrEmpty(lsAttr.Area))
-                    area = configuration.Area;
+               
                 if (lsAttr != null)
                 {
+                    string controller = lsAttr.Controller;
+                    if (string.IsNullOrEmpty(lsAttr.Controller))
+                        controller = configuration.Controller;
+                    string area = lsAttr.Area;
+                    if (string.IsNullOrEmpty(lsAttr.Area))
+                        area = configuration.Area;
                     model.List = new ListModel(
                         controller,
                         lsAttr.Action,
@@ -189,27 +219,31 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
                     dataType = "int";
                 else if (record == typeof(DateTime) || record == typeof(DateTime?))
                     dataType = "date";
-                var model = new FieldModel(attr.Row, attr.Order, attr.Width, attr.Id, attr.IsKey, attr.DisplayName, attr.Autogenerated, attr.ControlType, attr.TabId, attr.EntityId);
+                var model = new FieldModel(attr.Row, attr.Order, attr.Width, attr.Id, attr.IsKey, attr.DisplayName, attr.Autogenerated, attr.Type, attr.TabId, attr.EntityId);
                 model.DataType = dataType;
-                string controller = lsAttr.Controller;
-                if (string.IsNullOrEmpty(lsAttr.Controller))
-                    controller = configuration.Controller;
-                string area = lsAttr.Area;
-                if (string.IsNullOrEmpty(lsAttr.Area))
-                    area = configuration.Area;
-                model.List = new ListModel(
-                    controller,
-                    lsAttr.Action,
-                    lsAttr.ValueField,
-                    lsAttr.TextField,
-                    lsAttr.ID,
-                    area,
-                    lsAttr.MultipleSelect,
-                    lsAttr.OnSelectedChange,
-                    lsAttr.OnField,
-                    lsAttr.FilterColumn,
-                    lsAttr.FilterValue,
-                    lsAttr.SortField);
+                if (lsAttr!=null)
+                {
+                    string controller = lsAttr.Controller;
+                    if (string.IsNullOrEmpty(lsAttr.Controller))
+                        controller = configuration.Controller;
+                    string area = lsAttr.Area;
+                    if (string.IsNullOrEmpty(lsAttr.Area))
+                        area = configuration.Area;
+                    model.List = new ListModel(
+                        controller,
+                        lsAttr.Action,
+                        lsAttr.ValueField,
+                        lsAttr.TextField,
+                        lsAttr.ID,
+                        area,
+                        lsAttr.MultipleSelect,
+                        lsAttr.OnSelectedChange,
+                        lsAttr.OnField,
+                        lsAttr.FilterColumn,
+                        lsAttr.FilterValue,
+                        lsAttr.SortField);
+                    
+                }
                 models.Add(model);
             }
             return models;
@@ -249,7 +283,7 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             models.ForEach(tab =>
             {
                 var fields = fieldModels.Where(s => s.TabId == tab.ID).ToList();
-                var rows = fields.Select(s => s.Row).ToList();
+                var rows = fields.Select(s => s.Row).Distinct().ToList();
                 foreach (var row in rows)
                 {
                     var rowFields = fields.Where(s => s.Row == row).ToList();
