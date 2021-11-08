@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
     <Authors>Tamandani Chagwirampeni</Authors>
-    <Version>1.0.3</Version>
+    <Version>1.0.4</Version>
     <RepositoryUrl>https://github.com/tctamedie/Relational.BaseModels.AspNetCore.Generics.git</RepositoryUrl>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Description>This library contains base models for creating database entities, Annotations for generating User Interface dynamically, generic services for common database operations</Description>

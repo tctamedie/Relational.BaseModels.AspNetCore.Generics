@@ -297,13 +297,13 @@ namespace Relational.BaseModels.AspNetCore.Generics.Annotations
             models.ForEach(tab =>
             {
                 var fields = fieldModels.Where(s => s.TabId == tab.ID).ToList();
-                var rows = fields.Select(s => s.Row).Distinct().ToList();
+                var rows = fields.Select(s => new { s.Row }).Distinct().OrderBy(s=>s.Row).ToList();
                 foreach (var row in rows)
                 {
-                    var rowFields = fields.Where(s => s.Row == row).ToList();
+                    var rowFields = fields.Where(s => s.Row == row.Row).OrderBy(s=>s.Order).ToList();
                     tab.Rows.Add(new TabRow
                     {
-                        Order = row,
+                        Order = row.Row,
                         Fields = rowFields
                     });
                 }
